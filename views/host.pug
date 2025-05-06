@@ -13,12 +13,13 @@ html
       if gameCode
         h3 Game Code: #{gameCode}
       
-      div.js-scores.mb-3
-        h3 Scores:
-
       ol.js-buzzes
         each buzz in buzzes
           li=`${buzz.name} on Team ${buzz.team}`
+      
+      div.js-scores.mb-3
+        h3 Scores:
+
       button.js-clear='Clear buzzes'
 
     script(src='/socket.io/socket.io.js')
