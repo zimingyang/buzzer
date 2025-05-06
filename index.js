@@ -144,6 +144,25 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('hostLoaded', ({ gameCode }) => {
+    if (games[gameCode]) {
+      socket.join(gameCode);
+      console.log(`Host socket ${socket.id} joined room ${gameCode} upon page load.`);
+
+      // Send current game state to this host socket to ensure UI is immediately up-to-date
+      const gameData = getGameData(gameCode);
+      if (gameData) {
+        socket.emit('active', gameData.active);
+        socket.emit('buzzes', gameData.buzzes); // This is already formatted as [{name, team}]
+        socket.emit('scores', gameData.scores);
+      }
+    } else {
+      console.log(`Host socket ${socket.id} tried to load non-existent game: ${gameCode}`);
+      // Optionally, inform the client if the game is not found
+      // socket.emit('error', { message: 'Game not found on host page load.' });
+    }
+  });
+
   // Handling disconnects needs to be game-aware too
   // This is a simplified version. You might need to track which games a socket was part of.
   // For now, we'll assume a socket is only in one game for simplicity of disconnect.

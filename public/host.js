@@ -17,7 +17,10 @@ if (!gameCode) {
   // Optional: Display the game code on the host page
   const gameCodeDisplay = document.createElement('p');
   gameCodeDisplay.textContent = `Game Code: ${gameCode}`;
-  document.body.insertBefore(gameCodeDisplay, document.body.firstChild); 
+  document.body.insertBefore(gameCodeDisplay, document.body.firstChild);
+  
+  // Tell the server that the host for this gameCode has loaded the page
+  socket.emit('hostLoaded', { gameCode });
 }
 
 socket.on('active', (numberActive) => {
