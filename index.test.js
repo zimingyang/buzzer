@@ -12,7 +12,7 @@ const waitFor = (socket, event) => {
   });
 };
 
-describe('Buffer Buzzer Server Logic', () => {
+describe('Buzzer Server Logic', () => {
   beforeAll((done) => {
     httpServer = http.createServer(app);
     io = new Server(httpServer);

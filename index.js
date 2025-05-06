@@ -6,7 +6,7 @@ const app = express();
 const server = http.Server(app);
 const io = socketio(server);
 
-const title = 'Buffer Buzzer'
+const title = 'Ziming Buzzer'
 
 // New structure for multiple games
 let games = {};

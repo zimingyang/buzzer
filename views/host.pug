@@ -6,19 +6,36 @@ html
     link(rel="stylesheet" href='/style.css')
   body
     header
-      img.logo(src='/buzzer-logo.svg')
-
-    div.container
-      h2.js-active=`${users.length} joined`
       if gameCode
         h3 Game Code: #{gameCode}
-      
-      ol.js-buzzes
-        each buzz in buzzes
-          li=`${buzz.name} on Team ${buzz.team}`
+      //- img.logo(src='/buzzer-logo.svg')
+
+    div.container
+      h2.js-active #{users.length} joined
+
+      div.buzzer-container
+        ol.js-buzzes
+          //- Buzzes will be populated by JavaScript
+          each buzz in buzzes
+            li(data-team=buzz.team)
+              span.buzz-name #{buzz.name} on Team #{buzz.team}
+              button.award-point-btn(data-team=buzz.team) Award Point to Team #{buzz.team}
+        
+        //- Template for new buzz items (hidden, used by JS)
+        template#buzz-template
+          li(data-team="")
+            span.buzz-name
+            button.award-point-btn Award Point
       
       div.js-scores.mb-3
         h3 Scores:
+        ul.scores-list
+          each score, team in scores || {}
+            li Team #{team}: #{score}
+        
+        //- Template for score items (hidden, used by JS)
+        template#score-template
+          li
 
       button.js-clear='Clear buzzes'
 

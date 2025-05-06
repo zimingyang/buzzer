@@ -2,7 +2,11 @@ const socket = io()
 const active = document.querySelector('.js-active')
 const buzzList = document.querySelector('.js-buzzes')
 const clear = document.querySelector('.js-clear')
-const scoresDisplay = document.querySelector('.js-scores')
+const scoresList = document.querySelector('.scores-list')
+
+// Templates
+const buzzTemplate = document.querySelector('#buzz-template')
+const scoreTemplate = document.querySelector('#score-template')
 
 // Get gameCode from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -14,55 +18,66 @@ if (!gameCode) {
   // Disable buttons if no gamecode
   if(clear) clear.disabled = true;
 } else {
-  // Optional: Display the game code on the host page
-  const gameCodeDisplay = document.createElement('p');
-  gameCodeDisplay.textContent = `Game Code: ${gameCode}`;
-  document.body.insertBefore(gameCodeDisplay, document.body.firstChild);
-  
   // Tell the server that the host for this gameCode has loaded the page
   socket.emit('hostLoaded', { gameCode });
 }
 
+// Update active user count when received from server
 socket.on('active', (numberActive) => {
-  active.innerText = `${numberActive} joined`
+  active.innerText = `${numberActive} joined`;
 })
 
+// Update buzz list when received from server
 socket.on('buzzes', (buzzes) => {
-  buzzList.innerHTML = buzzes
-    .map(user => 
-      `<li>${user.name} on Team ${user.team} 
-         <button class="award-point-btn" data-team="${user.team}">Award Point to Team ${user.team}</button>
-       </li>`)
-    .join('');
-
-  // Add event listeners to new award buttons
-  document.querySelectorAll('.award-point-btn').forEach(button => {
+  // Clear existing buzzes
+  buzzList.innerHTML = '';
+  
+  // Add new buzzes using the template
+  buzzes.forEach(user => {
+    // Clone the template
+    const template = buzzTemplate.content.cloneNode(true);
+    const li = template.querySelector('li');
+    const span = template.querySelector('.buzz-name');
+    const button = template.querySelector('.award-point-btn');
+    
+    // Set data and content
+    li.setAttribute('data-team', user.team);
+    span.textContent = `${user.name} on Team ${user.team}`;
+    button.setAttribute('data-team', user.team);
+    button.textContent = `Award Point to Team ${user.team}`;
+    
+    // Add event listener
     button.addEventListener('click', () => {
       if (!gameCode) return;
-      const teamName = button.dataset.team;
-      socket.emit('awardPoint', { teamName, gameCode });
+      socket.emit('awardPoint', { teamName: user.team, gameCode });
     });
+    
+    // Add to list
+    buzzList.appendChild(template);
   });
 })
 
 // Listen for score updates
 socket.on('scores', (scores) => {
-  if (scoresDisplay) {
-    scoresDisplay.innerHTML = '<h3>Scores:</h3>';
-    const ul = document.createElement('ul');
+  if (scoresList) {
+    // Clear existing scores
+    scoresList.innerHTML = '';
+    
+    // Add new scores using the template
     for (const team in scores) {
-      const li = document.createElement('li');
+      const template = scoreTemplate.content.cloneNode(true);
+      const li = template.querySelector('li');
       li.textContent = `Team ${team}: ${scores[team]}`;
-      ul.appendChild(li);
+      scoresList.appendChild(template);
     }
-    scoresDisplay.appendChild(ul);
   } else {
     console.log('Scores updated:', scores); // Fallback if no display element
   }
 });
 
+// Set up clear button event handler
 clear.addEventListener('click', () => {
   if (!gameCode) return;
-  socket.emit('clear', gameCode) // Send gameCode with clear event
+  socket.emit('clear', gameCode);
 })
 
