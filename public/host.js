@@ -1,8 +1,7 @@
 const socket = io()
-const activeUsersList = document.querySelector('.js-active-users')
+const teamStatsTable = document.querySelector('.team-stats')
 const buzzList = document.querySelector('.js-buzzes')
 const clear = document.querySelector('.js-clear')
-const scoresList = document.querySelector('.scores-list')
 
 // Templates
 const buzzTemplate = document.querySelector('#buzz-template')
@@ -15,7 +14,9 @@ const gameCode = urlParams.get('game');
 
 if (!gameCode) {
   // Handle missing game code, maybe redirect or show error
-  activeUsersList.innerHTML = "<li>No game code specified in URL.</li>";
+  const usersRow = document.createElement('tr');
+  usersRow.innerHTML = "<td colspan='2'>No game code specified in URL.</td>";
+  teamStatsTable.appendChild(usersRow);
   // Disable buttons if no gamecode
   if(clear) clear.disabled = true;
 } else {
@@ -28,15 +29,19 @@ socket.on('active', (users) => {
   // Debug what's being received
   console.log('Active users received:', users);
   
-  // Clear existing users list
-  activeUsersList.innerHTML = '';
+  // Remove existing user rows
+  const userRows = teamStatsTable.querySelectorAll('.user-item');
+  userRows.forEach(row => row.remove());
   
   if (!users || users.length === 0) {
-    activeUsersList.innerHTML = '<li>No users joined yet</li>';
+    const emptyRow = document.createElement('tr');
+    emptyRow.className = 'user-item';
+    emptyRow.innerHTML = '<td colspan="2">No users joined yet</td>';
+    teamStatsTable.appendChild(emptyRow);
     return;
   }
   
-  // Add each user to the list
+  // Add each user to the table
   users.forEach(user => {
     if (!user || !user.name) {
       console.log('Invalid user data:', user);
@@ -45,14 +50,14 @@ socket.on('active', (users) => {
     
     // Clone the template
     const template = userTemplate.content.cloneNode(true);
-    const li = template.querySelector('.user-item');
-    const span = template.querySelector('.user-name');
+    const tr = template.querySelector('.user-item');
+    const td = template.querySelector('.user-name');
     
     // Set user data
-    span.textContent = `${user.name} - Team ${user.team || 'Unknown'}`;
+    td.textContent = `${user.name} - Team ${user.team || 'Unknown'}`;
     
-    // Add to list
-    activeUsersList.appendChild(template);
+    // Add to table
+    teamStatsTable.appendChild(template);
   });
 })
 
@@ -88,19 +93,31 @@ socket.on('buzzes', (buzzes) => {
 
 // Listen for score updates
 socket.on('scores', (scores) => {
-  if (scoresList) {
-    // Clear existing scores
-    scoresList.innerHTML = '';
+  // Remove existing team rows from the table
+  const teamRows = teamStatsTable.querySelectorAll('.team-row');
+  teamRows.forEach(row => row.remove());
+  
+  // Get the "Joined Users" header row to use as reference
+  const joinedUsersHeader = Array.from(teamStatsTable.querySelectorAll('tr')).find(
+    row => row.textContent.includes('Joined Users')
+  );
+  
+  // Add new scores using the template
+  for (const team in scores) {
+    const template = scoreTemplate.content.cloneNode(true);
+    const tr = template.querySelector('.team-row');
+    const tds = tr.querySelectorAll('td');
     
-    // Add new scores using the template
-    for (const team in scores) {
-      const template = scoreTemplate.content.cloneNode(true);
-      const li = template.querySelector('li');
-      li.textContent = `Team ${team}: ${scores[team]}`;
-      scoresList.appendChild(template);
+    tr.setAttribute('data-team', team);
+    tds[0].textContent = `Team ${team}`;
+    tds[1].textContent = scores[team];
+    
+    // Insert before the joined users header
+    if (joinedUsersHeader) {
+      teamStatsTable.insertBefore(template, joinedUsersHeader);
+    } else {
+      teamStatsTable.insertBefore(template, teamStatsTable.firstChild);
     }
-  } else {
-    console.log('Scores updated:', scores); // Fallback if no display element
   }
 });
 

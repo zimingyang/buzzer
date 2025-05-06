@@ -4,48 +4,59 @@ html
     title=title
     meta(name='viewport' content='width=device-width, initial-scale=1')
     link(rel="stylesheet" href='/style.css')
-  body
-    header
+  body.host-page
+    header.text-center.mb-4
       if gameCode
-        h3 Game Code: #{gameCode}
+        h2.game-code Game Code: 
+          span.code #{gameCode}
       //- img.logo(src='/buzzer-logo.svg')
 
     div.container
-      div.users-section.mb-3
-        h2 Joined Users
-        ul.js-active-users
-          //- Users will be populated by JavaScript
+      div.game-stats.card.mb-4
+        h2.section-title.text-center Game Status
+        table.game-stats-table.full-width
+          thead
+            tr
+              th Teams & Players
+              th.text-center Score
+          tbody.team-stats
+            each score, team in scores || {}
+              tr.team-row(data-team=team)
+                td.team-name Team #{team}
+                td.team-score.text-center #{score}
+            tr.divider
+              td(colspan="2")
+                h3.subsection-title.text-center Joined Players
+            //- Users will be populated by JavaScript in this section
+            
+        //- Template for score items (hidden, used by JS)
+        template#score-template
+          tr.team-row
+            td.team-name
+            td.team-score.text-center
+            
+        //- Template for user items (hidden, used by JS)
+        template#user-template
+          tr.user-item
+            td.user-name.text-center(colspan="2")
       
-      div.buzzer-container
-        ol.js-buzzes
+      div.buzzer-container.card.mb-4
+        h2.section-title.text-center Buzz Queue
+        ol.js-buzzes.buzz-list
           //- Buzzes will be populated by JavaScript
           each buzz in buzzes
-            li(data-team=buzz.team)
+            li.buzz-item(data-team=buzz.team)
               span.buzz-name #{buzz.name} on Team #{buzz.team}
-              button.award-point-btn(data-team=buzz.team) Award Point to Team #{buzz.team}
+              button.award-point-btn.btn(data-team=buzz.team) Award Point to Team #{buzz.team}
         
         //- Template for new buzz items (hidden, used by JS)
         template#buzz-template
-          li(data-team="")
+          li.buzz-item(data-team="")
             span.buzz-name
-            button.award-point-btn Award Point
-      
-      //- Template for user items (hidden, used by JS)
-      template#user-template
-        li.user-item
-          span.user-name
+            button.award-point-btn.btn Award Point
 
-      div.js-scores.mb-3
-        h3 Scores:
-        ul.scores-list
-          each score, team in scores || {}
-            li Team #{team}: #{score}
-        
-        //- Template for score items (hidden, used by JS)
-        template#score-template
-          li
-
-      button.js-clear='Clear buzzes'
+      div.actions.text-center
+        button.js-clear.btn.btn-large='Clear All Buzzes'
 
     script(src='/socket.io/socket.io.js')
     script(src='/host.js')
