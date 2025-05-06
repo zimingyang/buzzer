@@ -1,5 +1,5 @@
 const socket = io()
-const active = document.querySelector('.js-active')
+const activeUsersList = document.querySelector('.js-active-users')
 const buzzList = document.querySelector('.js-buzzes')
 const clear = document.querySelector('.js-clear')
 const scoresList = document.querySelector('.scores-list')
@@ -7,6 +7,7 @@ const scoresList = document.querySelector('.scores-list')
 // Templates
 const buzzTemplate = document.querySelector('#buzz-template')
 const scoreTemplate = document.querySelector('#score-template')
+const userTemplate = document.querySelector('#user-template')
 
 // Get gameCode from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -14,7 +15,7 @@ const gameCode = urlParams.get('game');
 
 if (!gameCode) {
   // Handle missing game code, maybe redirect or show error
-  active.innerText = "No game code specified in URL.";
+  activeUsersList.innerHTML = "<li>No game code specified in URL.</li>";
   // Disable buttons if no gamecode
   if(clear) clear.disabled = true;
 } else {
@@ -22,9 +23,37 @@ if (!gameCode) {
   socket.emit('hostLoaded', { gameCode });
 }
 
-// Update active user count when received from server
-socket.on('active', (numberActive) => {
-  active.innerText = `${numberActive} joined`;
+// Update active users list when received from server
+socket.on('active', (users) => {
+  // Debug what's being received
+  console.log('Active users received:', users);
+  
+  // Clear existing users list
+  activeUsersList.innerHTML = '';
+  
+  if (!users || users.length === 0) {
+    activeUsersList.innerHTML = '<li>No users joined yet</li>';
+    return;
+  }
+  
+  // Add each user to the list
+  users.forEach(user => {
+    if (!user || !user.name) {
+      console.log('Invalid user data:', user);
+      return; // Skip invalid users
+    }
+    
+    // Clone the template
+    const template = userTemplate.content.cloneNode(true);
+    const li = template.querySelector('.user-item');
+    const span = template.querySelector('.user-name');
+    
+    // Set user data
+    span.textContent = `${user.name} - Team ${user.team || 'Unknown'}`;
+    
+    // Add to list
+    activeUsersList.appendChild(template);
+  });
 })
 
 // Update buzz list when received from server

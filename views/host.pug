@@ -11,8 +11,11 @@ html
       //- img.logo(src='/buzzer-logo.svg')
 
     div.container
-      h2.js-active #{users.length} joined
-
+      div.users-section.mb-3
+        h2 Joined Users
+        ul.js-active-users
+          //- Users will be populated by JavaScript
+      
       div.buzzer-container
         ol.js-buzzes
           //- Buzzes will be populated by JavaScript
@@ -27,6 +30,11 @@ html
             span.buzz-name
             button.award-point-btn Award Point
       
+      //- Template for user items (hidden, used by JS)
+      template#user-template
+        li.user-item
+          span.user-name
+
       div.js-scores.mb-3
         h3 Scores:
         ul.scores-list

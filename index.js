@@ -29,14 +29,18 @@ const getGameData = (gameCode) => {
   const game = games[gameCode];
   if (!game) return null; // Or handle error appropriately
 
+  // Debug log to see what's in the map
+  console.log(`Game ${gameCode} userMap has ${game.userMap.size} entries:`, 
+    Array.from(game.userMap.entries()));
+
   return {
-    users: [...game.users],
+    users: Array.from(game.userMap.values()), // Return array of user objects
     buzzes: [...game.buzzes].map(b => {
       const [ name, team ] = b.split('-');
       return { name, team };
     }),
     scores: game.scores, // Assuming scores is an object { teamName: score }
-    active: game.users.size,
+    active: game.userMap.size,
   };
 };
 
@@ -56,28 +60,35 @@ app.get('/host', (req, res) => {
 
 io.on('connection', (socket) => {
   // Game Creation
-  socket.on('createGame', (user) => { // Assuming user object { name, id } is sent by client
+  socket.on('createGame', (user) => { // Expecting full user object now
+    console.log('Creating game with user:', user);
     const gameCode = generateGameCode();
     games[gameCode] = {
-      users: new Set(),
+      userMap: new Map(), // Maps user IDs to user objects with more details
       buzzes: new Set(),
       scores: {}, // Initialize scores
-      // players: {} // as per original request, but users Set seems more aligned with current code for active count
+      hostId: user ? user.id : null, // Track the host ID
     };
-    if (user && user.id) { // Add creator to the game
-        games[gameCode].users.add(user.id); // Or a more detailed user object
-    }
+    
+    // Host is not added to userMap intentionally
+    // Instead, we just track their ID separately
+    
     socket.join(gameCode); // Creator joins the game room
+    socket.gameCode = gameCode; // Store game code on socket
+    if (user) socket.userId = user.id; // Store user ID on socket
+    
     socket.emit('gameCreated', { gameCode }); // Send code back to creator
-    console.log(`${user ? user.name : 'A user'} created game: ${gameCode}`);
+    console.log(`${user ? user.name : 'A user'} created game: ${gameCode} as host`);
+    
     // Emit initial state to the host who just created and joined
-    io.to(gameCode).emit('active', games[gameCode].users.size);
+    io.to(gameCode).emit('active', Array.from(games[gameCode].userMap.values()));
     io.to(gameCode).emit('buzzes', []);
     io.to(gameCode).emit('scores', games[gameCode].scores);
   });
 
   socket.on('join', (data) => { // data will now include { user, gameCode }
     const { user, gameCode } = data;
+    console.log('User joining:', user, 'to game:', gameCode);
     const game = games[gameCode];
 
     if (game) {
@@ -86,10 +97,29 @@ io.on('connection', (socket) => {
       socket.gameCode = gameCode;
       socket.userId = user.id; // Assuming user object has a unique id property
 
-      game.users.add(user.id); // Add user's ID to the set of users in the game
-      // Emit updated active count to the specific game room
-      io.to(gameCode).emit('active', game.users.size);
-      console.log(`${user.name} joined game ${gameCode}! Active users in game: ${game.users.size}`);
+      // Don't add the host to the player list if they're joining
+      if (game.hostId !== user.id) {
+        // Ensure user object has all required properties
+        const safeUser = {
+          id: user.id,
+          name: user.name || 'Unknown',
+          team: user.team || 'Unknown'
+        };
+        
+        game.userMap.set(user.id, safeUser); // Store the full user object
+        
+        console.log('User joined, current userMap:', Array.from(game.userMap.entries()));
+        
+        // Emit updated users list to the specific game room
+        const usersList = Array.from(game.userMap.values());
+        console.log('Sending active users list:', usersList);
+        io.to(gameCode).emit('active', usersList);
+        console.log(`${user.name} joined game ${gameCode}! Active users in game: ${game.userMap.size}`);
+      } else {
+        console.log(`Host ${user.name} rejoined game ${gameCode}`);
+        // Still send the current user list to keep the host UI updated
+        socket.emit('active', Array.from(game.userMap.values()));
+      }
     } else {
       // Handle error: game not found
       socket.emit('error', { message: 'Game not found.' });
@@ -152,7 +182,7 @@ io.on('connection', (socket) => {
       // Send current game state to this host socket to ensure UI is immediately up-to-date
       const gameData = getGameData(gameCode);
       if (gameData) {
-        socket.emit('active', gameData.active);
+        socket.emit('active', gameData.users); // Send full user objects
         socket.emit('buzzes', gameData.buzzes); // This is already formatted as [{name, team}]
         socket.emit('scores', gameData.scores);
       }
@@ -164,23 +194,22 @@ io.on('connection', (socket) => {
   });
 
   // Handling disconnects needs to be game-aware too
-  // This is a simplified version. You might need to track which games a socket was part of.
-  // For now, we'll assume a socket is only in one game for simplicity of disconnect.
   socket.on('disconnect', () => {
-    // Iterate over all games to find the user and remove them
-    // This is inefficient if there are many games.
-    // A better approach would be to store gameCode on the socket object upon join.
-    // e.g., socket.gameCode = gameCode;
-    // For now, let's assume we'll add socket.gameCode when joining.
-    const gameCode = socket.gameCode; // This needs to be set upon join
+    const gameCode = socket.gameCode;
     if (gameCode && games[gameCode]) {
-      // To properly remove the user, we need their ID.
-      // This part of the logic requires knowing which user this socket represented.
-      // Let's assume the 'join' event stores the user's ID on the socket: socket.userId = user.id;
-      if (socket.userId) {
-        games[gameCode].users.delete(socket.userId);
-        io.to(gameCode).emit('active', games[gameCode].users.size);
-        console.log(`A user with ID ${socket.userId} disconnected from game ${gameCode}. Active users: ${games[gameCode].users.size}`);
+      if (socket.userId && socket.userId !== games[gameCode].hostId) {
+        games[gameCode].userMap.delete(socket.userId);
+        
+        console.log('User disconnected, current userMap:', 
+          Array.from(games[gameCode].userMap.entries()));
+        
+        // Send updated user list to all clients in the game
+        const usersList = Array.from(games[gameCode].userMap.values());
+        io.to(gameCode).emit('active', usersList);
+        console.log(`A user with ID ${socket.userId} disconnected from game ${gameCode}. Active users: ${games[gameCode].userMap.size}`);
+      } else if (socket.userId === games[gameCode].hostId) {
+        console.log(`Host with ID ${socket.userId} disconnected from game ${gameCode}`);
+        // Optionally handle host disconnect differently, e.g. notify players
       }
     }
   });

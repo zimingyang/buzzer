@@ -12,6 +12,11 @@ const errorMessageDisplay = document.querySelector('.js-error-message')
 let user = {}
 let currentGameCode = null
 
+// Generate a truly unique ID based on timestamp and random number
+const generateUniqueId = () => {
+  return `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+}
+
 const getUserInfo = () => {
   user = JSON.parse(localStorage.getItem('user')) || {}
   if (user.name) {
@@ -41,6 +46,9 @@ const displayError = (message) => {
 
 form.addEventListener('submit', (e) => {
   e.preventDefault()
+  // Always generate a new ID for the user when they join a game
+  // This ensures different people on the same browser get different IDs
+  user.id = generateUniqueId()
   user.name = form.querySelector('[name=name]').value
   user.team = form.querySelector('[name=team]').value
   const inputGameCode = form.querySelector('[name=gameCode]').value.toUpperCase()
@@ -50,11 +58,8 @@ form.addEventListener('submit', (e) => {
     return
   }
 
-  if (!user.id) {
-    user.id = Math.floor(Math.random() * new Date().getTime())
-  }
-
   currentGameCode = inputGameCode
+  console.log('Joining as:', user); // Debug log
   socket.emit('join', { user, gameCode: currentGameCode })
   saveUserInfo()
   
@@ -70,11 +75,10 @@ if (createGameBtn) {
   createGameBtn.addEventListener('click', () => {
     user.name = form.querySelector('[name=name]').value || 'Host'
     user.team = form.querySelector('[name=team]').value || 'N/A'
+    user.id = generateUniqueId() // Generate a unique ID for the host
     
-    if (!user.id) {
-      user.id = Math.floor(Math.random() * new Date().getTime())
-    }
-    socket.emit('createGame', { name: user.name, id: user.id })
+    console.log('Creating game as:', user); // Debug log
+    socket.emit('createGame', user) // Send the whole user object
     saveUserInfo()
   })
 }
