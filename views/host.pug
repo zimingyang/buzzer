@@ -12,48 +12,49 @@ html
       //- img.logo(src='/buzzer-logo.svg')
 
     div.container
-      div.game-stats.card.mb-4
-        h2.section-title.text-center Game Status
-        table.game-stats-table.full-width
-          thead
-            tr
-              th Teams & Players
-              th.text-center Score
-          tbody.team-stats
-            each score, team in scores || {}
-              tr.team-row(data-team=team)
-                td.team-name Team #{team}
-                td.team-score.text-center #{score}
-            tr.divider
-              td(colspan="2")
-                h3.subsection-title.text-center Joined Players
-            //- Users will be populated by JavaScript in this section
-            
-        //- Template for score items (hidden, used by JS)
-        template#score-template
-          tr.team-row
-            td.team-name
-            td.team-score.text-center
-            
-        //- Template for user items (hidden, used by JS)
-        template#user-template
-          tr.user-item
-            td.user-name.text-center(colspan="2")
-      
-      div.buzzer-container.card.mb-4
-        h2.section-title.text-center Buzz Queue
-        ol.js-buzzes.buzz-list
-          //- Buzzes will be populated by JavaScript
-          each buzz in buzzes
-            li.buzz-item(data-team=buzz.team)
-              span.buzz-name #{buzz.name} on Team #{buzz.team}
-              button.award-point-btn.btn(data-team=buzz.team) Award Point to Team #{buzz.team}
+      div.game-layout
+        div.game-stats.card.mb-4
+          h2.section-title.text-center Game Status
+          table.game-stats-table.full-width
+            thead
+              tr
+                th Teams & Players
+                th.text-center Score
+            tbody.team-stats
+              each score, team in scores || {}
+                tr.team-row(data-team=team)
+                  td.team-name Team #{team}
+                  td.team-score.text-center #{score}
+              tr.divider
+                td(colspan="2")
+                  h3.subsection-title.text-center Joined Players
+              //- Users will be populated by JavaScript in this section
+              
+          //- Template for score items (hidden, used by JS)
+          template#score-template
+            tr.team-row
+              td.team-name
+              td.team-score.text-center
+              
+          //- Template for user items (hidden, used by JS)
+          template#user-template
+            tr.user-item
+              td.user-name.text-center(colspan="2")
         
         //- Template for new buzz items (hidden, used by JS)
         template#buzz-template
           li.buzz-item(data-team="")
             span.buzz-name
             button.award-point-btn.btn Award Point
+
+        div.buzzer-container.card.mb-4
+          h2.section-title.text-center Buzz Queue
+          ol.js-buzzes.buzz-list
+            //- Buzzes will be populated by JavaScript
+            each buzz in buzzes
+              li.buzz-item(data-team=buzz.team)
+                span.buzz-name #{buzz.name} on Team #{buzz.team}
+                button.award-point-btn.btn(data-team=buzz.team) Award Point to Team #{buzz.team}
 
       div.actions.text-center
         button.js-clear.btn.btn-large='Clear All Buzzes'

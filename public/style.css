@@ -53,10 +53,11 @@ header {
 
 .container {
   width: 100%;
-  max-width: 400px;
+  max-width: 1200px;
   padding: 1em;
   margin: 0 auto;
 }
+
 .view button:last-child {
   margin-bottom: 0;
 }
@@ -277,5 +278,25 @@ button:focus {
   .award-point-btn {
     margin-top: 0.5rem;
     width: 100%;
+  }
+}
+
+.game-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .game-layout {
+    flex-direction: row;
+  }
+  
+  .game-stats {
+    flex: 1;
+  }
+  
+  .buzzer-container {
+    flex: 1;
   }
 }
