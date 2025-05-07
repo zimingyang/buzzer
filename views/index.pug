@@ -8,15 +8,18 @@ html
   body.js-body
     header
       img.logo(src='buzzer-logo.svg')
-
+      button#theme-toggle.btn(style="position: absolute; top: 10px; right: 10px;")
+        svg(xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+          path(d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z")
     div.container
       form.view.js-join
         img(src="/v853cllbzjw11.jpg" class="main-image")
         h2="Let's play!"
-        input(type='text' name='name' placeholder='Your name' required='required')
-        input(type='number' name='team' placeholder='Your team number' required='required')
-        input(type='text' name='gameCode' placeholder='Game Code' class='form-control mb-2')
-        button(type='submit')='Join Game'
+        div(style="margin: 10%")
+          input(type='text' name='name' placeholder='Your name' required='required')
+          input(type='number' name='team' placeholder='Your team number' required='required')
+          input(type='text' name='gameCode' placeholder='Game Code' class='form-control mb-2')
+          button(type='submit')='Join Game'
         button(type='button' class='btn btn-success js-create-game mb-2') Create New Game
       
       div.game-info-display.mt-2

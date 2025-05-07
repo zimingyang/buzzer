@@ -1,3 +1,34 @@
+document.addEventListener('DOMContentLoaded', () => {
+  const themeToggle = document.getElementById('theme-toggle');
+  const body = document.body; // Assuming body tag has class .js-body, or just use document.body
+
+  // Function to apply the saved theme or default to light
+  const applyTheme = () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-mode'); // Apply to document.body directly
+    } else {
+      document.body.classList.remove('dark-mode'); // Default to light
+    }
+  };
+
+  // Apply theme on initial load
+  applyTheme();
+
+  // Event listener for the toggle button
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      // Save the new theme preference
+      if (document.body.classList.contains('dark-mode')) {
+        localStorage.setItem('theme', 'dark');
+      } else {
+        localStorage.setItem('theme', 'light');
+      }
+    });
+  }
+});
+
 // Get user info from localStorage first
 const storedUser = JSON.parse(localStorage.getItem('user')) || {};
 // Initialize socket with user data

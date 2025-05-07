@@ -118,6 +118,7 @@ button:focus {
 
 .main-image {
   width: 90%;
+  max-width: 500px;
 }
 
 .buzzer {
@@ -299,4 +300,212 @@ button:focus {
   .buzzer-container {
     flex: 1;
   }
+}
+
+/* Dark Mode Styles */
+:root {
+  --light-bg: #fff;
+  --light-text: #1A2634;
+  --light-card-bg: #fff;
+  --light-input-bg: #fff;
+  --light-input-border: #B8B8B8;
+  --light-input-focus-border: #2c4bff;
+  --light-input-focus-shadow: #ABB7FF;
+  --light-btn-bg: #161D99;
+  --light-btn-text: #fff;
+  --light-btn-hover-bg: rgb(22, 29, 153);
+  --light-btn-active-shadow: rgb(171, 183, 255);
+  --light-secondary-btn-bg: #fff;
+  --light-secondary-btn-text: rgb(16, 21, 78);
+  --light-secondary-btn-hover-bg: rgb(230, 230, 230); /* Adjusted for better visibility */
+  --light-buzzer-bg: rgb(243, 175, 185);
+  --light-buzzer-text: rgb(18, 30, 102);
+  --light-buzzer-hover-bg: #e97284;
+  --light-header-border: #efefef;
+  --light-section-title: #161D99;
+  --light-subsection-title: #1A2634;
+  --light-code-bg: #f5f5f5;
+  --light-code-text: #161D99;
+  --light-table-header-bg: #f5f5f5;
+  --light-table-border: #ddd;
+  --light-table-row-border: #eee;
+  --light-buzz-item-bg: #f9f9f9;
+  --light-award-btn-bg: #22c55e;
+  --light-award-btn-hover-bg: #16a34a;
+
+
+  --dark-bg: #222831;
+  --dark-surface: #393E46;
+  --dark-text: #DFD0B8;
+  --dark-accent: #948979; /* For borders, secondary text */
+  --dark-primary-action: #948979; /* Or a brighter color from palette if needed for main buttons */
+  --dark-primary-action-text: #222831;
+}
+
+body.dark-mode {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+body.dark-mode header {
+  background-color: var(--dark-surface); /* Or var(--dark-bg) if header should blend more */
+  border-bottom-color: var(--dark-accent);
+}
+
+body.dark-mode .logo {
+  /* If logo has transparency or needs adjustment for dark mode */
+  /* filter: invert(1) hue-rotate(180deg); /* Example filter */
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode input[type="number"] {
+  background-color: var(--dark-surface);
+  color: var(--dark-text);
+  border: 1px solid var(--dark-accent);
+}
+
+body.dark-mode input[type="text"]:focus,
+body.dark-mode input[type="number"]:focus,
+body.dark-mode input[type="text"]:active,
+body.dark-mode input[type="number"]:active {
+  border-color: var(--dark-primary-action); /* Using accent for focus, or a brighter color */
+  box-shadow: 0 0 0 3px var(--dark-accent); /* Adjust shadow color */
+}
+
+body.dark-mode button {
+  background-color: var(--dark-primary-action);
+  color: var(--dark-primary-action-text); /* Text color for buttons */
+}
+
+body.dark-mode button:hover {
+  background-color: #a59a8a; /* Slightly lighter/darker version of --dark-primary-action */
+}
+
+body.dark-mode button:active,
+body.dark-mode button:focus {
+  box-shadow: 0 0 0 3px var(--dark-surface); /* Adjust shadow color */
+}
+
+body.dark-mode .buzzer {
+  background-color: var(--dark-primary-action);
+  color: var(--dark-primary-action-text);
+}
+body.dark-mode .buzzer:hover,
+body.dark-mode .buzzer:active {
+  background-color: #a59a8a; /* Slightly lighter/darker version of --dark-primary-action */
+}
+
+body.dark-mode .secondary {
+  background-color: var(--dark-surface);
+  color: var(--dark-text);
+  border: 1px solid var(--dark-accent);
+}
+
+body.dark-mode .secondary:hover {
+  background-color: #4a5058; /* Slightly lighter version of --dark-surface */
+}
+
+body.dark-mode .host-page header {
+  border-bottom: 1px solid var(--dark-accent);
+}
+
+body.dark-mode .card {
+  background-color: var(--dark-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Darker shadow for dark mode */
+}
+
+body.dark-mode .section-title {
+  color: var(--dark-text); /* Or a specific accent color from your palette */
+}
+
+body.dark-mode .subsection-title {
+  color: var(--dark-text);
+}
+
+body.dark-mode .code {
+  color: var(--dark-bg); /* Text on code block */
+  background-color: var(--dark-accent); /* Background of code block */
+  border: 1px solid var(--dark-surface);
+}
+
+body.dark-mode .game-stats-table th {
+  background-color: var(--dark-surface); /* Darker header for table */
+  color: var(--dark-text);
+  border-bottom: 2px solid var(--dark-accent);
+}
+
+body.dark-mode .game-stats-table td {
+  border-bottom: 1px solid var(--dark-accent);
+}
+
+body.dark-mode .team-score {
+  color: var(--dark-text); /* Or a brighter highlight color if needed */
+}
+
+body.dark-mode .divider {
+  border-top: 2px solid var(--dark-accent);
+}
+
+body.dark-mode .buzz-list {
+  /* Potentially no change needed if items are styled individually */
+}
+
+body.dark-mode .buzz-item {
+  background-color: var(--dark-surface); /* Slightly different from card for depth */
+  border: 1px solid var(--dark-accent);
+  color: var(--dark-text);
+}
+
+body.dark-mode .award-point-btn {
+  background-color: #7a7060; /* Muted version of an award color, from palette */
+  color: var(--dark-bg);
+}
+
+body.dark-mode .award-point-btn:hover {
+  background-color: #6b6253;
+}
+
+/* Adjusting colors for the primary action button on the buzzer page */
+body.dark-mode .js-join button[type='submit'] {
+  background-color: var(--dark-primary-action); /* Use the main accent from the palette */
+  color: var(--dark-primary-action-text);
+}
+body.dark-mode .js-join button[type='submit']:hover {
+  background-color: #a59a8a; /* Slightly lighter/darker for hover */
+}
+
+/* Adjusting colors for the create game button on the buzzer page */
+body.dark-mode .js-create-game {
+  background-color: var(--dark-surface); /* A more subdued button */
+  color: var(--dark-text);
+  border: 1px solid var(--dark-accent);
+}
+body.dark-mode .js-create-game:hover {
+   background-color: #4a5058;
+}
+
+body.dark-mode .js-error-message {
+  color: #ff6b6b; /* A light red for errors in dark mode */
+}
+
+/* Ensure default browser styles for placeholder text are overridden if needed */
+body.dark-mode input::placeholder {
+  color: var(--dark-accent);
+  opacity: 0.7;
+}
+body.dark-mode input::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  color: var(--dark-accent);
+  opacity: 0.7;
+}
+body.dark-mode input::-moz-placeholder { /* Firefox 19+ */
+  color: var(--dark-accent);
+  opacity: 0.7;
+}
+body.dark-mode input:-ms-input-placeholder { /* IE 10+ */
+  color: var(--dark-accent);
+  opacity: 0.7;
+}
+body.dark-mode input:-moz-placeholder { /* Firefox 18- */
+  color: var(--dark-accent);
+  opacity: 0.7;
 }
