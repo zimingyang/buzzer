@@ -218,16 +218,16 @@ socket.on('connect', () => {
 })
 
 // Add a simple helper text for host reconnection
-const addHostReconnectionHelp = () => {
-  const helpText = document.createElement('p')
-  helpText.className = 'host-reconnect-help'
-  helpText.style.fontSize = '0.8em'
-  helpText.style.color = '#666'
-  helpText.style.marginTop = '5px'
-  helpText.textContent = 'To rejoin as host, enter your original name, use team number 0, and the game code.'
-  form.appendChild(helpText)
-}
+// const addHostReconnectionHelp = () => {
+//   const helpText = document.createElement('p')
+//   helpText.className = 'host-reconnect-help'
+//   helpText.style.fontSize = '0.8em'
+//   helpText.style.color = '#666'
+//   helpText.style.marginTop = '5px'
+//   helpText.textContent = 'To rejoin as host, enter your original name, use team number 0, and the game code.'
+//   form.appendChild(helpText)
+// }
 
 getUserInfo()
 // Add the host reconnection help text
-addHostReconnectionHelp()
+// addHostReconnectionHelp()
