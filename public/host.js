@@ -1,4 +1,12 @@
-const socket = io()
+// Get the user info from localStorage to pass with socket connection
+const storedUser = JSON.parse(localStorage.getItem('user')) || {};
+// Initialize socket with user data
+const socket = io({
+  query: {
+    user: JSON.stringify(storedUser)
+  }
+});
+
 const teamStatsTable = document.querySelector('.team-stats')
 const buzzList = document.querySelector('.js-buzzes')
 const clear = document.querySelector('.js-clear')
@@ -12,6 +20,18 @@ const userTemplate = document.querySelector('#user-template')
 const urlParams = new URLSearchParams(window.location.search);
 const gameCode = urlParams.get('game');
 
+// Store the host status in localStorage
+if (gameCode) {
+  localStorage.setItem('currentGameCode', gameCode);
+  // Get existing user info to ensure host name is saved
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  if (!user.name) {
+    user.name = 'Host';
+    user.team = 'N/A';
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+}
+
 if (!gameCode) {
   // Handle missing game code, maybe redirect or show error
   const usersRow = document.createElement('tr');
@@ -23,6 +43,22 @@ if (!gameCode) {
   // Tell the server that the host for this gameCode has loaded the page
   socket.emit('hostLoaded', { gameCode });
 }
+
+// Handle reconnection
+socket.on('connect', () => {
+  console.log('Host socket connected:', socket.id);
+  
+  // If we have a game code, re-join that game's room
+  if (gameCode) {
+    socket.emit('hostLoaded', { gameCode });
+  }
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('Host socket disconnected:', reason);
+  // Store disconnect timestamp
+  localStorage.setItem('disconnectedAt', Date.now().toString());
+});
 
 // Update active users list when received from server
 socket.on('active', (users) => {
