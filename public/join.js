@@ -73,10 +73,31 @@ form.addEventListener('submit', (e) => {
     return
   }
 
+  // Special case: if team is '0', this might be a host reconnection attempt
+  if (user.team === '0') {
+    console.log('Potential host reconnection attempt detected')
+    // Store the game code for potential manual redirect
+    localStorage.setItem('potentialHostGameCode', inputGameCode)
+  }
+
   currentGameCode = inputGameCode
   console.log('Joining as:', user); // Debug log
   socket.emit('join', { user, gameCode: currentGameCode })
   saveUserInfo()
+  
+  // For team '0', we'll wait a short time to see if we get a redirect
+  if (user.team === '0') {
+    setTimeout(() => {
+      // If we're still on the join page after 1 second, try manual redirect
+      if (window.location.pathname === '/') {
+        const storedGameCode = localStorage.getItem('potentialHostGameCode')
+        if (storedGameCode === currentGameCode) {
+          console.log('No redirect received, attempting manual redirect to host page')
+          window.location.href = `/host?game=${currentGameCode}`
+        }
+      }
+    }, 1000)
+  }
   
   joinedInfo.innerText = `${user.name} on Team ${user.team} (Game: ${currentGameCode})`
   if (gameCodeDisplay) gameCodeDisplay.textContent = `Game Code: ${currentGameCode}`
@@ -106,9 +127,11 @@ socket.on('gameCreated', (data) => {
 
 // Handle redirect to host page when a host reconnects
 socket.on('redirectToHost', (data) => {
-  currentGameCode = data.gameCode
-  saveUserInfo()
-  window.location.href = `/host?game=${currentGameCode}`
+  console.log('Received redirectToHost event:', data);
+  currentGameCode = data.gameCode;
+  saveUserInfo();
+  // Immediately redirect to the host page
+  window.location.href = `/host?game=${currentGameCode}`;
 })
 
 buzzer.addEventListener('click', (e) => {
@@ -194,4 +217,17 @@ socket.on('connect', () => {
   }
 })
 
+// Add a simple helper text for host reconnection
+const addHostReconnectionHelp = () => {
+  const helpText = document.createElement('p')
+  helpText.className = 'host-reconnect-help'
+  helpText.style.fontSize = '0.8em'
+  helpText.style.color = '#666'
+  helpText.style.marginTop = '5px'
+  helpText.textContent = 'To rejoin as host, enter your original name, use team number 0, and the game code.'
+  form.appendChild(helpText)
+}
+
 getUserInfo()
+// Add the host reconnection help text
+addHostReconnectionHelp()

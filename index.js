@@ -140,10 +140,24 @@ io.on('connection', (socket) => {
 
       // Check if this is a host rejoining within the timeout period
       // Either by matching the host name or by using team '0'
-      if ((game.hostName === user.name || user.team === '0') && game.hostDisconnectedAt !== null) {
+      if (game.hostDisconnectedAt !== null) {
         const timeElapsed = Date.now() - game.hostDisconnectedAt;
         
-        if (timeElapsed <= HOST_RECONNECT_TIMEOUT) {
+        // Check if this is a host reconnection attempt
+        const isHostReconnection = 
+          (game.hostName === user.name) || // Name matches original host
+          (user.team === '0'); // Using team '0' as a special indicator
+        
+        console.log('Host reconnection check:', {
+          hostName: game.hostName,
+          userName: user.name,
+          userTeam: user.team,
+          isHostReconnection,
+          timeElapsed,
+          timeout: HOST_RECONNECT_TIMEOUT
+        });
+        
+        if (isHostReconnection && timeElapsed <= HOST_RECONNECT_TIMEOUT) {
           // Update the host ID to the new socket ID
           game.hostId = user.id;
           // Clear any pending host timeout
@@ -156,6 +170,7 @@ io.on('connection', (socket) => {
           console.log(`Host ${user.name} rejoined game ${gameCode} and regained host status`);
           
           // Redirect to host page
+          console.log('Sending redirectToHost event to socket:', socket.id);
           socket.emit('redirectToHost', { gameCode });
           
           // Still send the current user list to keep the host UI updated
