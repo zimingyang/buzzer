@@ -302,6 +302,62 @@ button:focus {
   }
 }
 
+/* NEW CSS FOR HOMEPAGE LAYOUT */
+.home-layout {
+  display: flex;
+  flex-direction: column; /* Mobile-first: stacked */
+  align-items: center; /* Center items when stacked */
+  gap: 2rem; /* Space between image and form when stacked */
+}
+
+.home-image-container,
+.home-form-container {
+  width: 100%; /* Full width when stacked */
+}
+
+.home-form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center form elements */
+}
+
+/* Ensure the form itself and the create game button take up a reasonable width */
+.home-form-container .js-join,
+.home-form-container .js-create-game {
+  width: 100%;
+  max-width: 400px; /* Max width for form elements, adjust as needed */
+}
+
+
+@media (min-width: 768px) { /* Desktop breakpoint */
+  .home-layout {
+    flex-direction: row; /* Side-by-side */
+    align-items: flex-start; /* Align items to the top */
+    justify-content: center; /* Center the whole layout if it doesn't fill the container */
+  }
+
+  .home-image-container {
+    flex: 0 0 40%; /* Example: Image takes up 40% of the width, doesn't grow, doesn't shrink */
+    /* Or use flex: 1; if you want it to grow equally with the form */
+    /* padding-right: 1rem; Removed as gap on parent is better */
+    display: flex; /* To center the image if it's smaller than the container */
+    justify-content: center;
+    align-items: center;
+  }
+
+  .home-form-container {
+    flex: 0 0 50%; /* Example: Form takes up 50% of the width */
+    /* Or use flex: 1; */
+    /* padding-left: 1rem; Removed as gap on parent is better */
+    align-items: stretch; /* Stretch form elements to fill container width */
+  }
+
+  .home-form-container .js-join,
+  .home-form-container .js-create-game {
+    max-width: none; /* Allow form elements to use the full width of the form container on desktop */
+  }
+}
+
 /* Dark Mode Styles */
 :root {
   --light-bg: #fff;

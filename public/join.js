@@ -57,12 +57,18 @@ const generateUniqueId = () => {
 }
 
 const getUserInfo = () => {
-  user = JSON.parse(localStorage.getItem('user')) || {}
-  if (user.name) {
-    form.querySelector('[name=name]').value = user.name
-    form.querySelector('[name=team]').value = user.team
+  user = JSON.parse(localStorage.getItem('user')) || {};
+  // Ensure user.id exists: load from storage or generate if new
+  if (!user.id) {
+    user.id = generateUniqueId();
+    // The ID will be saved by saveUserInfo() later if a game is joined/created
   }
-  currentGameCode = localStorage.getItem('currentGameCode')
+
+  if (user.name) {
+    form.querySelector('[name=name]').value = user.name;
+    form.querySelector('[name=team]').value = user.team;
+  }
+  currentGameCode = localStorage.getItem('currentGameCode');
   if (currentGameCode) {
     if (gameCodeDisplay) gameCodeDisplay.textContent = `Game Code: ${currentGameCode}`
     
@@ -94,7 +100,11 @@ form.addEventListener('submit', (e) => {
   e.preventDefault()
   // Always generate a new ID for the user when they join a game
   // This ensures different people on the same browser get different IDs
-  user.id = generateUniqueId()
+  // user.id = generateUniqueId() // MODIFIED: Use existing or recently generated user.id
+  // Ensure user.id is set (it should be by getUserInfo, but as a fallback)
+  if (!user.id) {
+    user.id = generateUniqueId();
+  }
   user.name = form.querySelector('[name=name]').value
   user.team = form.querySelector('[name=team]').value
   const inputGameCode = form.querySelector('[name=gameCode]').value.toUpperCase()
@@ -220,7 +230,7 @@ socket.on('connect', () => {
       
       // Create a user object with a new ID but same name
       const reconnectUser = {
-        id: generateUniqueId(),
+        id: savedUser.id, // MODIFIED: Use the stored ID
         name: savedUser.name,
         team: savedUser.team
       }

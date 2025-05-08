@@ -103,7 +103,7 @@ socket.on('active', (users) => {
   if (!users || users.length === 0) {
     const emptyRow = document.createElement('tr');
     emptyRow.className = 'user-item';
-    emptyRow.innerHTML = '<td colspan="2">No users joined yet</td>';
+    emptyRow.innerHTML = '<td colspan="2">No players joined yet</td>';
     teamStatsTable.appendChild(emptyRow);
     return;
   }

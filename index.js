@@ -13,6 +13,8 @@ let games = {};
 
 // Host reconnection timeout in milliseconds (5 minutes)
 const HOST_RECONNECT_TIMEOUT = 5 * 60 * 1000;
+// User reconnection timeout in milliseconds (2 minutes)
+const USER_RECONNECT_TIMEOUT = 2 * 60 * 1000;
 
 // Helper function to generate a unique 4-character game code
 const generateGameCode = () => {
@@ -37,7 +39,7 @@ const getGameData = (gameCode) => {
     Array.from(game.userMap.entries()));
 
   return {
-    users: Array.from(game.userMap.values()), // Return array of user objects
+    users: Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null), // Only send active users
     buzzes: [...game.buzzes].map(b => {
       const [ name, team ] = b.split('-');
       return { name, team };
@@ -133,13 +135,47 @@ io.on('connection', (socket) => {
     const game = games[gameCode];
 
     if (game) {
+      socket.gameCode = gameCode; // Store game code on socket first
+
+      // Try to find if this user ID is already in the game and disconnected
+      if (user && user.id && game.userMap.has(user.id)) {
+        const existingUser = game.userMap.get(user.id);
+        if (existingUser.disconnectedAt !== null) { // User was disconnected
+          const timeElapsed = Date.now() - existingUser.disconnectedAt;
+          if (timeElapsed <= USER_RECONNECT_TIMEOUT) {
+            console.log(`User ${existingUser.name} (ID: ${user.id}) reconnected to game ${gameCode}`);
+            if (existingUser.reconnectTimeoutId) {
+              clearTimeout(existingUser.reconnectTimeoutId);
+              existingUser.reconnectTimeoutId = null;
+            }
+            existingUser.socketId = socket.id;
+            existingUser.disconnectedAt = null;
+            existingUser.name = user.name; // Update name/team in case they changed it on the form
+            existingUser.team = user.team;
+            
+            socket.userId = existingUser.id;
+            socket.join(gameCode);
+            io.to(gameCode).emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
+            return; // Reconnection successful
+          } else {
+            console.log(`User ${existingUser.name} (ID: ${user.id}) reconnect attempt for game ${gameCode} was too late. Removing old entry.`);
+            if (existingUser.reconnectTimeoutId) clearTimeout(existingUser.reconnectTimeoutId);
+            game.userMap.delete(user.id); // Old entry is stale, remove it before proceeding to add as new
+          }
+        } else {
+          // User with this ID is already connected and not marked as disconnected.
+          // This could be a join attempt from another tab with the same localStorage.
+          console.warn(`User ${user.name} (ID: ${user.id}) attempted to join game ${gameCode} but an active session with this ID already exists.`);
+          socket.emit('error', { message: 'An active session with your user ID already exists in this game. Please check other tabs or browsers.' });
+          return;
+        }
+      }
+
+      // Standard join logic (new user, or user whose previous stale session was cleared)
       socket.join(gameCode);
-      // Store gameCode and userId on the socket for easier access later (e.g., on disconnect)
-      socket.gameCode = gameCode;
       socket.userId = user.id; // Assuming user object has a unique id property
 
-      // Check if this is a host rejoining within the timeout period
-      // Either by matching the host name or by using team '0'
+      // Check if this is a host rejoining (existing logic)
       if (game.hostDisconnectedAt !== null) {
         const timeElapsed = Date.now() - game.hostDisconnectedAt;
         
@@ -174,7 +210,7 @@ io.on('connection', (socket) => {
           socket.emit('redirectToHost', { gameCode });
           
           // Still send the current user list to keep the host UI updated
-          socket.emit('active', Array.from(game.userMap.values()));
+          socket.emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
           return;
         }
       }
@@ -185,22 +221,25 @@ io.on('connection', (socket) => {
         const safeUser = {
           id: user.id,
           name: user.name || 'Unknown',
-          team: user.team || 'Unknown'
+          team: user.team || 'Unknown',
+          socketId: socket.id,
+          disconnectedAt: null,
+          reconnectTimeoutId: null
         };
         
-        game.userMap.set(user.id, safeUser); // Store the full user object
+        game.userMap.set(user.id, safeUser); // Store the full user object, keyed by persistent user.id
         
         console.log('User joined, current userMap:', Array.from(game.userMap.entries()));
         
         // Emit updated users list to the specific game room
-        const usersList = Array.from(game.userMap.values());
+        const usersList = Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null);
         console.log('Sending active users list:', usersList);
         io.to(gameCode).emit('active', usersList);
-        console.log(`${user.name} joined game ${gameCode}! Active users in game: ${game.userMap.size}`);
+        console.log(`${user.name} joined game ${gameCode}! Active users in game: ${usersList.length}`);
       } else {
         console.log(`Host ${user.name} rejoined game ${gameCode}`);
         // Still send the current user list to keep the host UI updated
-        socket.emit('active', Array.from(game.userMap.values()));
+        socket.emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
       }
     } else {
       // Handle error: game not found - use socket.emit instead of throwing an error
@@ -301,31 +340,56 @@ io.on('connection', (socket) => {
   // Handling disconnects needs to be game-aware too
   socket.on('disconnect', () => {
     const gameCode = socket.gameCode;
-    if (gameCode && games[gameCode]) {
-      if (socket.userId && socket.userId !== games[gameCode].hostId) {
-        games[gameCode].userMap.delete(socket.userId);
-        
-        console.log('User disconnected, current userMap:', 
-          Array.from(games[gameCode].userMap.entries()));
-        
-        // Send updated user list to all clients in the game
-        const usersList = Array.from(games[gameCode].userMap.values());
-        io.to(gameCode).emit('active', usersList);
-        console.log(`A user with ID ${socket.userId} disconnected from game ${gameCode}. Active users: ${games[gameCode].userMap.size}`);
-      } else if (socket.userId === games[gameCode].hostId) {
-        console.log(`Host with ID ${socket.userId} disconnected from game ${gameCode}`);
-        
-        // Record when the host disconnected and set a timeout to delete the game
-        games[gameCode].hostDisconnectedAt = Date.now();
-        
-        // Set a timeout to clean up the game if the host doesn't rejoin within 5 minutes
-        games[gameCode].hostTimeoutId = setTimeout(() => {
+    const userId = socket.userId; // Get the persistent userId stored on the socket
+
+    if (gameCode && games[gameCode] && userId) {
+      const game = games[gameCode];
+
+      if (userId === game.hostId) { // Host disconnected
+        console.log(`Host with ID ${userId} disconnected from game ${gameCode}`);
+        game.hostDisconnectedAt = Date.now();
+        game.hostTimeoutId = setTimeout(() => {
           console.log(`Host for game ${gameCode} did not reconnect within timeout period. Cleaning up game.`);
-          // Notify all connected clients in the game room before deletion
           io.to(gameCode).emit('error', { message: 'Game has ended because the host did not reconnect.' });
+          // Clean up all user reconnect timeouts in this game before deleting
+          game.userMap.forEach(usr => {
+            if (usr.reconnectTimeoutId) {
+              clearTimeout(usr.reconnectTimeoutId);
+            }
+          });
           delete games[gameCode];
         }, HOST_RECONNECT_TIMEOUT);
+      } else if (game.userMap.has(userId)) { // Regular user disconnected
+        const user = game.userMap.get(userId);
+        
+        // Only process disconnect if it's from the user's current/latest socket
+        if (user.socketId === socket.id) {
+          user.disconnectedAt = Date.now();
+          user.socketId = null; // Clear socketId as this one is now closed
+          console.log(`User ${user.name} (ID: ${userId}) marked as disconnected from game ${gameCode}. Will be removed if no reconnect in ${USER_RECONNECT_TIMEOUT / 1000}s.`);
+          
+          // Emit updated active list (user will appear removed)
+          io.to(gameCode).emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
+
+          user.reconnectTimeoutId = setTimeout(() => {
+            // Check if user is still marked as disconnected (i.e., hasn't reconnected)
+            if (user.disconnectedAt !== null) {
+              console.log(`User ${user.name} (ID: ${userId}) did not reconnect to game ${gameCode}. Permanently removing.`);
+              game.userMap.delete(userId);
+              // Emit updated active list
+              io.to(gameCode).emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
+            }
+          }, USER_RECONNECT_TIMEOUT);
+        } else {
+          console.log(`Old socket for user ${user.name} (ID: ${userId}) disconnected after they already reconnected with a new socket. No action needed.`);
+        }
+      } else {
+        console.log(`User with ID ${userId} disconnected from game ${gameCode}, but was not found in userMap.`);
       }
+    } else {
+      // This can happen if a socket disconnects before successfully joining a game
+      // or if socket.gameCode or socket.userId were not set.
+      console.log(`Socket ${socket.id} disconnected without a game or user context.`);
     }
   });
 

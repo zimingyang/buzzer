@@ -21,7 +21,7 @@ html
           table.game-stats-table.full-width
             thead
               tr
-                th Teams & Players
+                th Teams
                 th.text-center Score
             tbody.team-stats
               each score, team in scores || {}
@@ -30,7 +30,7 @@ html
                   td.team-score.text-center #{score}
               tr.divider
                 td(colspan="2")
-                  h3.subsection-title.text-center Joined Players
+                  h3.subsection-title.text-center Players
               //- Users will be populated by JavaScript in this section
               
           //- Template for score items (hidden, used by JS)
