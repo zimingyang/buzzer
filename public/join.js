@@ -38,6 +38,25 @@ const socket = io({
   }
 });
 
+// Get game code and error from URL if present
+const urlParams = new URLSearchParams(window.location.search);
+const urlGameCode = urlParams.get('game');
+const urlError = urlParams.get('error');
+
+// Handle any error messages from URL
+if (urlError) {
+  displayError(decodeURIComponent(urlError));
+}
+
+if (urlGameCode) {
+  // If game code is in URL, store it and pre-fill the input
+  localStorage.setItem('currentGameCode', urlGameCode);
+  const gameCodeInput = document.querySelector('[name=gameCode]');
+  if (gameCodeInput) {
+    gameCodeInput.value = urlGameCode;
+  }
+}
+
 const body = document.querySelector('.js-body')
 const form = document.querySelector('.js-join')
 const joined = document.querySelector('.js-joined')

@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const themeToggle = document.getElementById('theme-toggle');
+  const qrToggle = document.getElementById('qr-toggle');
   const body = document.body;
+  const qrContainer = document.querySelector('.qr-container');
 
   // Function to apply the saved theme or default to light
   const applyTheme = () => {
@@ -12,10 +14,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Apply theme on initial load
-  applyTheme();
+  // Function to apply saved QR visibility state
+  const applyQRVisibility = () => {
+    const savedQRState = localStorage.getItem('qrVisible');
+    if (savedQRState === 'true') {
+      qrContainer.style.display = 'flex';
+      qrToggle.classList.add('active');
+    } else {
+      qrContainer.style.display = 'none';
+      qrToggle.classList.remove('active');
+    }
+  };
 
-  // Event listener for the toggle button
+  // Apply theme and QR visibility on initial load
+  applyTheme();
+  applyQRVisibility();
+
+  // Function to generate QR code with current theme colors
+  const generateQRCode = () => {
+    const qrcodeElement = document.getElementById("qrcode");
+    if (!qrcodeElement || !gameCode) return;
+    
+    // Clear previous QR code
+    qrcodeElement.innerHTML = '';
+    
+    const gameUrl = `${window.location.origin}/?game=${gameCode}`;
+    const isDarkMode = body.classList.contains('dark-mode');
+    
+    new QRCode(qrcodeElement, {
+      text: gameUrl,
+      width: 200,
+      height: 200,
+      colorDark: isDarkMode ? "#DFD0B8" : "#161D99",
+      colorLight: isDarkMode ? "#393E46" : "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  };
+
+  // Event listener for the theme toggle button
   if (themeToggle) {
     themeToggle.addEventListener('click', () => {
       body.classList.toggle('dark-mode');
@@ -25,8 +61,28 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         localStorage.setItem('theme', 'light');
       }
+      // Regenerate QR code with new theme colors
+      generateQRCode();
     });
   }
+
+  // Event listener for the QR toggle button
+  if (qrToggle) {
+    qrToggle.addEventListener('click', () => {
+      const isVisible = qrContainer.style.display !== 'none';
+      qrContainer.style.display = isVisible ? 'none' : 'flex';
+      qrToggle.classList.toggle('active');
+      localStorage.setItem('qrVisible', !isVisible);
+      
+      // Generate QR code if it's being shown
+      if (!isVisible) {
+        generateQRCode();
+      }
+    });
+  }
+
+  // Generate initial QR code
+  generateQRCode();
 });
 
 // Get the user info from localStorage to pass with socket connection
