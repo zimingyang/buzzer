@@ -63,6 +63,20 @@ app.get('/host', (req, res) => {
   res.render('host', Object.assign({ title, gameCode }, gameData));
 });
 
+// New route for players
+app.get('/play', (req, res) => {
+  const gameCode = req.query.game;
+  const user = req.query.user ? JSON.parse(req.query.user) : {}; // Get user from query
+
+  if (!gameCode || !games[gameCode]) {
+    return res.redirect('/?error=invalid_game_code_or_not_joined');
+  }
+  // We might want to pass more specific player data here later
+  // For now, just the gameCode and title is enough for the pug template
+  // The client-side JS ('/play.js') will handle fetching full game state via sockets.
+  res.render('play', { title, gameCode, user });
+});
+
 io.on('connection', (socket) => {
   // Extract user info from socket handshake query if available
   let queryUser = {};
@@ -156,6 +170,8 @@ io.on('connection', (socket) => {
             socket.userId = existingUser.id;
             socket.join(gameCode);
             io.to(gameCode).emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
+            // Emit redirect event for reconnected user
+            socket.emit('redirectToPlay', { gameCode, user: existingUser }); 
             return; // Reconnection successful
           } else {
             console.log(`User ${existingUser.name} (ID: ${user.id}) reconnect attempt for game ${gameCode} was too late. Removing old entry.`);
@@ -235,11 +251,19 @@ io.on('connection', (socket) => {
         const usersList = Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null);
         console.log('Sending active users list:', usersList);
         io.to(gameCode).emit('active', usersList);
+        // Emit redirect event for newly joined user
+        socket.emit('redirectToPlay', { gameCode, user: safeUser });
         console.log(`${user.name} joined game ${gameCode}! Active users in game: ${usersList.length}`);
       } else {
         console.log(`Host ${user.name} rejoined game ${gameCode}`);
         // Still send the current user list to keep the host UI updated
         socket.emit('active', Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null));
+        // If it's the host rejoining their own game (not through special host path), they might be on index page
+        // and should be redirected to host view.
+        // However, this case is primarily handled by the redirectToHost logic earlier.
+        // If they are joining as a host, they get redirectToHost.
+        // If they are joining as a player to their own game (which shouldn't typically happen unless they cleared storage and rejoined as a normal player)
+        // then redirectToPlay is fine.
       }
     } else {
       // Handle error: game not found - use socket.emit instead of throwing an error
@@ -308,7 +332,8 @@ io.on('connection', (socket) => {
       const user = JSON.parse(socket.handshake.query.user || '{}');
       if (user && user.id) {
         socket.userId = user.id;
-        games[gameCode].hostId = user.id;
+        games[gameCode].hostId = user.id; // Ensure hostId is current
+        games[gameCode].hostName = user.name; // Ensure hostName is current
         
         // Clear disconnect status if the host reconnected
         if (games[gameCode].hostDisconnectedAt) {
@@ -334,6 +359,69 @@ io.on('connection', (socket) => {
       console.log(`Host socket ${socket.id} tried to load non-existent game: ${gameCode}`);
       // Inform the client if the game is not found
       socket.emit('error', { message: 'Game not found on host page load.' });
+    }
+  });
+
+  socket.on('playerLoaded', ({ gameCode, user }) => {
+    if (games[gameCode] && user && user.id) {
+      socket.join(gameCode);
+      socket.gameCode = gameCode;
+      socket.userId = user.id;
+
+      const game = games[gameCode];
+      // Check if this player was disconnected and is now rejoining via page load/refresh
+      if (game.userMap.has(user.id)) {
+        const existingPlayer = game.userMap.get(user.id);
+        if (existingPlayer.disconnectedAt) {
+          console.log(`Player ${user.name} (ID: ${user.id}) reconnected to game ${gameCode} via page load.`);
+          if (existingPlayer.reconnectTimeoutId) {
+            clearTimeout(existingPlayer.reconnectTimeoutId);
+            existingPlayer.reconnectTimeoutId = null;
+          }
+          existingPlayer.socketId = socket.id; // Update socketId
+          existingPlayer.disconnectedAt = null;
+          // Name and team might have been passed in URL if they changed, but user object from client is source of truth here
+          existingPlayer.name = user.name;
+          existingPlayer.team = user.team;
+        } else {
+          // Player is already in game and connected, this might be a redundant load event
+          // or a new tab. Update socketId just in case.
+          existingPlayer.socketId = socket.id;
+        }
+      } else {
+        // This is unusual if 'playerLoaded' is emitted after a successful join sequence.
+        // Could happen if player bookmarks /play page and tries to access directly without proper join.
+        // Or if server restarted and user refreshed.
+        // For now, we'll add them if they are not in userMap. This might need more robust handling.
+        console.warn(`Player ${user.name} (ID: ${user.id}) loaded /play page for game ${gameCode} but was not in userMap. Adding them.`);
+        const newPlayer = {
+            id: user.id,
+            name: user.name || 'Unknown',
+            team: user.team || 'Unknown',
+            socketId: socket.id,
+            disconnectedAt: null,
+            reconnectTimeoutId: null
+        };
+        game.userMap.set(user.id, newPlayer);
+      }
+
+      console.log(`Player socket ${socket.id} (${user.name}) confirmed loaded for game ${gameCode}.`);
+
+      // Send current game state to this player socket
+      const gameData = getGameData(gameCode);
+      if (gameData) {
+        socket.emit('active', gameData.users);
+        socket.emit('buzzes', gameData.buzzes);
+        socket.emit('scores', gameData.scores);
+      }
+      // If this user is actually the host but landed on /play, redirect them
+      if (game.hostId === user.id) {
+        socket.emit('redirectToHost', { gameCode });
+      }
+
+    } else {
+      console.log(`Player socket ${socket.id} tried to load game ${gameCode} but game or user data was missing/invalid.`);
+      socket.emit('error', { message: 'Game not found or user data invalid on player page load.' });
     }
   });
 

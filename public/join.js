@@ -291,3 +291,39 @@ socket.on('connect', () => {
 getUserInfo()
 // Add the host reconnection help text
 // addHostReconnectionHelp()
+
+// NEW: Listen for the 'redirectToPlay' event
+socket.on('redirectToPlay', (data) => {
+  console.log('Received redirectToPlay event:', data);
+  if (data.gameCode && data.user) {
+    // Store/update user details in localStorage if you are using it for persistence
+    localStorage.setItem('userName', data.user.name);
+    localStorage.setItem('userTeam', data.user.team);
+    if (data.user.id) {
+        localStorage.setItem('userId', data.user.id);
+    }
+    
+    // Redirect to the /play page
+    const userQueryParam = encodeURIComponent(JSON.stringify(data.user));
+    window.location.href = `/play?game=${data.gameCode}&user=${userQueryParam}`;
+  } else {
+    console.error('redirectToPlay event missing data:', data);
+    // Display an error to the user on the current page
+    const errorDisplay = document.querySelector('.js-error-message'); // Assuming you have this
+    if (errorDisplay) {
+      errorDisplay.textContent = 'Failed to join game due to missing data. Please try again.';
+    }
+  }
+});
+
+// Also, ensure you handle the 'redirectToHost' event if a host accidentally tries to join as a player
+socket.on('redirectToHost', (data) => {
+  console.log('Received redirectToHost on index/join page, redirecting:', data.gameCode);
+  // Retrieve current user from local storage to pass it along
+  const userId = localStorage.getItem('userId');
+  const userName = localStorage.getItem('userName');
+  const user = { id: userId, name: userName }; // Team might not be relevant for host redirect here
+  
+  const userQueryParam = encodeURIComponent(JSON.stringify(user));
+  window.location.href = `/host?game=${data.gameCode}&user=${userQueryParam}`;
+});

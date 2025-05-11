@@ -1,0 +1,39 @@
+doctype html
+html
+  head
+    title= title + " - Playing"
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    link(rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:500,700|Roboto:400,500,700,900")
+    link(rel="stylesheet" href='/style.css')
+  body.js-body
+    header
+      img.logo(src='buzzer-logo.svg')
+      button#theme-toggle.btn(style="position: absolute; top: 10px; right: 10px;")
+        svg(xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+          path(d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z")
+
+    div.container
+      //- h1 Game: 
+      //-   span.js-game-code=gameCode
+      
+      //- div.game-info-display.mt-2
+      //-   p Players in game: 
+      //-     span.js-player-count 0
+      //-   p Your Name: 
+      //-     span.js-player-name
+      //-   p Your Team: 
+      //-     span.js-player-team
+      p.js-error-message(style="color: red;")
+
+      div.player-actions
+        button.js-buzzer.buzzer(style="margin-top: 20px;")='Buzz!'
+        button.js-edit-play.btn.btn-secondary(style="margin-top: 10px;") Change Team / Info
+        //- Maybe a leave game button later?
+
+
+      //- Hidden until game details are loaded perhaps
+      //- div.view.js-game-active.hidden
+      //-   p Waiting for host...
+
+    script(src='/socket.io/socket.io.js')
+    script(src='/play.js') // We will need a new JS file for this page 
