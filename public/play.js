@@ -38,13 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load theme from localStorage
   const currentTheme = localStorage.getItem('theme');
   if (currentTheme === 'dark') {
-    body.classList.add('dark-theme');
+    body.classList.add('dark-mode');
   }
 
   if (themeToggleButton) {
     themeToggleButton.addEventListener('click', () => {
-      body.classList.toggle('dark-theme');
-      if (body.classList.contains('dark-theme')) {
+      body.classList.toggle('dark-mode');
+      if (body.classList.contains('dark-mode')) {
         localStorage.setItem('theme', 'dark');
       } else {
         localStorage.setItem('theme', 'light');
