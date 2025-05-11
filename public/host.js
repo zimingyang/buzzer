@@ -128,7 +128,7 @@ if (!gameCode) {
   if(clear) clear.disabled = true;
 } else {
   // Tell the server that the host for this gameCode has loaded the page
-  socket.emit('hostLoaded', { gameCode });
+  // socket.emit('hostLoaded', { gameCode }); // This will be handled by the 'connect' event
 }
 
 // Handle reconnection
@@ -220,10 +220,8 @@ socket.on('scores', (scores) => {
   const teamRows = teamStatsTable.querySelectorAll('.team-row');
   teamRows.forEach(row => row.remove());
   
-  // Get the "Joined Users" header row to use as reference
-  const joinedUsersHeader = Array.from(teamStatsTable.querySelectorAll('tr')).find(
-    row => row.textContent.includes('Joined Users')
-  );
+  // Get the "Players" divider row to insert scores above it
+  const playersDividerRow = teamStatsTable.querySelector('tr.divider');
   
   // Add new scores using the template
   for (const team in scores) {
@@ -235,11 +233,11 @@ socket.on('scores', (scores) => {
     tds[0].textContent = `Team ${team}`;
     tds[1].textContent = scores[team];
     
-    // Insert before the joined users header
-    if (joinedUsersHeader) {
-      teamStatsTable.insertBefore(template, joinedUsersHeader);
+    // Insert before the "Players" divider row, or at the top of the tbody if not found
+    if (playersDividerRow) {
+      teamStatsTable.insertBefore(template, playersDividerRow);
     } else {
-      teamStatsTable.insertBefore(template, teamStatsTable.firstChild);
+      teamStatsTable.insertBefore(template, teamStatsTable.firstChild); // Fallback
     }
   }
 });

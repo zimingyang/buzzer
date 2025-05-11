@@ -60,13 +60,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (buzzButton) {
     buzzButton.addEventListener('click', () => {
-      console.log('Buzz button clicked by:', currentUser);
+      console.log('Buzz button clicked by user:', currentUser);
+      // Check if button is already disabled; if so, do nothing.
+      if (buzzButton.disabled) {
+          console.log('Buzz button clicked, but already disabled.');
+          return;
+      }
+
       if (gameCode && currentUser && currentUser.id) {
         socket.emit('buzz', { gameCode, user: currentUser });
-        buzzButton.disabled = true; // Disable after buzzing
-        // The host will clear buzzes, which should re-enable the button via 'buzzes' event
+        console.log('Buzz event emitted for:', currentUser.name);
+        buzzButton.disabled = true; // Disable button immediately after this player buzzes
       } else {
-        errorMessageDisplay.textContent = 'Cannot buzz. Game or user info missing.';
+        console.error('Cannot buzz. Game code or user info missing. User:', currentUser, 'GameCode:', gameCode);
+        if (errorMessageDisplay) errorMessageDisplay.textContent = 'Cannot buzz. Game or user info missing.';
       }
     });
   }
@@ -99,17 +106,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('buzzes', (buzzes) => {
-    console.log('Buzzes update:', buzzes);
-    // Players typically don't see the full list of buzzes, but they need to know when to re-enable their buzzer.
-    // If buzzes list is empty, it means buzzers were cleared.
+    console.log('Buzzes update received by client:', buzzes);
     if (buzzButton) {
+      // Only re-enable the button if the buzzes list is empty (cleared by host)
       if (buzzes.length === 0) {
+        console.log('Buzzes cleared by host, re-enabling buzz button.');
         buzzButton.disabled = false;
       } else {
-        // Disable if someone else has buzzed (or if this player buzzed)
-        // More sophisticated logic could check if *this* player is in the buzzes list
-        // For now, any buzz disables all buttons for simplicity until cleared by host
-        buzzButton.disabled = true;
+        // If the list is not empty, ensure the button remains disabled if this specific player has already buzzed
+        // or if they haven't buzzed yet, keep it enabled unless it was already disabled by their own click.
+        // The main disabling action is now in the click handler. This block primarily handles re-enabling.
+        // For simplicity, if a player has buzzed (their button is disabled), and the list is not empty,
+        // it will remain disabled. If they haven't buzzed, their button state won't be changed here unless it's a clear.
+        // This ensures that once a player buzzes, only a full clear re-enables them.
+        if (!buzzButton.disabled && buzzes.some(b => b.name === currentUser.name && b.team === currentUser.team)) {
+            // This case is unlikely if click handler works, but as a safeguard:
+            // If this player is in the buzz list and their button is somehow still enabled, disable it.
+            console.log('This player is in the buzz queue, ensuring button is disabled.');
+            buzzButton.disabled = true;
+        } else if (buzzButton.disabled && buzzes.length > 0) {
+            console.log('Buzzes list is not empty, and this player previously buzzed. Button remains disabled.');
+        } else if (!buzzButton.disabled && buzzes.length > 0) {
+            console.log('Buzzes list is not empty, but this player has not buzzed. Button remains enabled.');
+        }
       }
     }
   });

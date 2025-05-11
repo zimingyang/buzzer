@@ -281,16 +281,48 @@ io.on('connection', (socket) => {
     const game = games[gameCode];
 
     if (game) {
-      // Buzz format: `${user.name}-${user.team}`
+      console.log(`[Game ${gameCode}] Buzz received from user:`, user);
       const buzzData = `${user.name}-${user.team}`;
+      console.log(`[Game ${gameCode}] Generated buzzData: "${buzzData}"`);
+
+      console.log(`[Game ${gameCode}] Current buzzes BEFORE add:`, Array.from(game.buzzes));
+      const originalSize = game.buzzes.size;
+
       game.buzzes.add(buzzData);
-      // Emit updated buzzes to the specific game room
+
+      console.log(`[Game ${gameCode}] Current buzzes AFTER add:`, Array.from(game.buzzes));
+      const newSize = game.buzzes.size;
+
+      if (newSize > originalSize) {
+        console.log(`[Game ${gameCode}] Successfully added buzz. New size: ${newSize}`);
+      } else if (game.buzzes.has(buzzData)) {
+        console.log(`[Game ${gameCode}] Buzz "${buzzData}" already existed or was not added. Size still: ${newSize}`);
+      } else {
+        // This case should ideally not be reached if buzzData was truly new and game.buzzes is a Set.
+        console.error(`[Game ${gameCode}] FAILED to add buzz "${buzzData}" for an unknown reason. Size still ${newSize}.`);
+      }
+      
       const formattedBuzzes = [...game.buzzes].map(b => {
-        const [ name, team ] = b.split('-');
+        const parts = b.split('-');
+        // Handle cases where name or team might be missing or contain hyphens
+        const team = parts.pop(); // Last part is team
+        const name = parts.join('-'); // Everything else is name
+        
+        if (name === undefined || team === undefined) {
+            console.warn(`[Game ${gameCode}] Malformed buzz string in Set: "${b}" during formatting. Name: ${name}, Team: ${team}`);
+            return { name: b, team: 'Error' }; // Fallback for malformed data
+        }
         return { name, team };
       });
+
+      console.log(`[Game ${gameCode}] Emitting formattedBuzzes:`, formattedBuzzes);
       io.to(gameCode).emit('buzzes', formattedBuzzes);
-      console.log(`${user.name} from team ${user.team} buzzed in game ${gameCode}!`);
+      // Keep the original log line for successful buzz registration confirmation
+      if (user && user.name && user.team) {
+          console.log(`${user.name} from team ${user.team} buzzed in game ${gameCode}!`);
+      } else {
+          console.log(`A user (details potentially incomplete) buzzed in game ${gameCode}. Buzzdata: "${buzzData}"`);
+      }
     } else {
       // Handle error: game not found
       console.log(`Buzz attempt in non-existent game: ${gameCode} by ${user.name}`);
@@ -383,6 +415,11 @@ io.on('connection', (socket) => {
           // Name and team might have been passed in URL if they changed, but user object from client is source of truth here
           existingPlayer.name = user.name;
           existingPlayer.team = user.team;
+
+          // Notify the whole room that this player is active again
+          const currentActiveUsers = Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null);
+          io.to(gameCode).emit('active', currentActiveUsers);
+
         } else {
           // Player is already in game and connected, this might be a redundant load event
           // or a new tab. Update socketId just in case.
@@ -403,6 +440,10 @@ io.on('connection', (socket) => {
             reconnectTimeoutId: null
         };
         game.userMap.set(user.id, newPlayer);
+
+        // Notify the whole room that this new player is active
+        const currentActiveUsersAfterAdd = Array.from(game.userMap.values()).filter(u => u.disconnectedAt === null);
+        io.to(gameCode).emit('active', currentActiveUsersAfterAdd);
       }
 
       console.log(`Player socket ${socket.id} (${user.name}) confirmed loaded for game ${gameCode}.`);
