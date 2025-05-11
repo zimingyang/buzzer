@@ -24,6 +24,22 @@ html
 
     div.container
       div.game-layout
+        //- Template for new buzz items (hidden, used by JS)
+        template#buzz-template
+          li.buzz-item(data-team="")
+            span.buzz-name
+            button.award-point-btn.btn Award Point
+
+        div.buzzer-container.card.mb-4
+          h2.section-title.text-center Buzz Queue
+          ol.js-buzzes.buzz-list
+            //- Buzzes will be populated by JavaScript
+            each buzz in buzzes
+              li.buzz-item(data-team=buzz.team)
+                span.buzz-name #{buzz.name} on Team #{buzz.team}
+                button.award-point-btn.btn(data-team=buzz.team) Award Point to Team #{buzz.team}
+
+
         div.game-stats.card.mb-4
           h2.section-title.text-center Game Status
           table.game-stats-table.full-width
@@ -52,21 +68,7 @@ html
             tr.user-item
               td.user-name.text-center(colspan="2")
         
-        //- Template for new buzz items (hidden, used by JS)
-        template#buzz-template
-          li.buzz-item(data-team="")
-            span.buzz-name
-            button.award-point-btn.btn Award Point
-
-        div.buzzer-container.card.mb-4
-          h2.section-title.text-center Buzz Queue
-          ol.js-buzzes.buzz-list
-            //- Buzzes will be populated by JavaScript
-            each buzz in buzzes
-              li.buzz-item(data-team=buzz.team)
-                span.buzz-name #{buzz.name} on Team #{buzz.team}
-                button.award-point-btn.btn(data-team=buzz.team) Award Point to Team #{buzz.team}
-
+        
       div.actions.text-center
         button.js-clear.btn.btn-large='Clear All Buzzes'
 
